@@ -1,0 +1,3 @@
+Flgoban is a Go board drawing tool. It reads, displays and broadcasts SGF (Smart Go Format) but does not implement functionality such as move browsing, time-based replaying or editing an sgf.
+This kind of functionality is left to controlling programs which have to connect to flgoban via a pipe or a socket. As such, flgoban (and its interface) stays lean and clean, and can be easily re-used to implement the functionality that _you_ want and in the programming language that _you_ prefer.
+Flgoban follows the unix phylosophy.

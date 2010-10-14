@@ -44,7 +44,7 @@ static char broadcast_msg[10000];
 
 struct settings
 {
-	int width, height, port, nogui, repeat;
+	int width, height, port, nogui, repeat, noexit;
 };
 static struct settings setts;
 
@@ -73,7 +73,7 @@ static void read_cb(int fd, void *data)
 	if(n <= 0) {
 		Fl::remove_fd(fd);
 		fds.remove(fd);
-		if(setts.nogui && !fds.size())
+		if(!setts.noexit && !fds.size())
 			exit(0);
 		return;
 	}
@@ -248,8 +248,9 @@ static struct argp_option options[] = {
 	{"width", 'w', "WIDTH", 0, "window width (defaults to 800)" },
 	{"height", 'h', "HEIGHT", 0, "window height (defaults to 800)" },
 	{"port", 'p', "PORT", 0, "listening port (if set to zero then only read from stdin - defaults to 5000)" },
-	{"nogui",'n', 0, 0, "text-only interface (reads and broadcasts sgf)"},
+	{"nogui",'g', 0, 0, "text-only interface (reads and broadcasts sgf)"},
 	{"repeat",'r', 0, 0, "do not expand sgf, just repeat it"},
+	{"noexit", 'e', 0, 0, "do not exit when last file is closed"},
 	{ 0 }
 };
 static error_t parse_opt (int key, char *arg, struct argp_state *state)
@@ -274,11 +275,14 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 				exit(1);
 			}
 			break;
-		case 'n':
+		case 'g':
 			setts.nogui = 1;
 			break;
 		case 'r':
 			setts.repeat = 1;
+			break;
+		case 'e':
+			setts.noexit = 1;
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;

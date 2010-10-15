@@ -26,37 +26,6 @@ static unsigned long next_char(const char* bp,unsigned long pos,const unsigned l
 	char c = bp[pos];
 	while( pos<size && (c==' ' || c=='\r' || c=='\n')) { ++pos; c = bp[pos]; }
 	if(pos>=size) return SGF_PARSE_ERROR;
-	if(cb->node_end && bp[pos]==';' && ( pos==0 || bp[pos-1]!='\\'))
-		cb->node_end();
-	return pos;
-}
-
-static unsigned long fp_next_prop(const char* bp,unsigned long pos,const unsigned long size)
-{
-	// in fast parsing, a ')' means the main var is done
-	int inProp = 1;
-	char c = bp[pos];
-	if(c==')') {
-		if(cb->node_end) cb->node_end();
-		return pos;
-	}
-	else if(c=='(') return pos;
-	while(pos<size && c!='[')
-	{
-		pos=next_char(bp,pos,size);
-		c=bp[pos];
-		if(c==']') inProp = 0;
-		else if(c==')' && !inProp) break;
-	}
-	if(pos>=size) return SGF_PARSE_ERROR;
-	if(c==')') return pos;
-
-	// go back to first upper capital of property ident
-	assert(c=='[');
-	--pos;
-	c=bp[pos];
-	while(c>='A' && c<='Z') { --pos; c=bp[pos]; }
-	++pos;
 	return pos;
 }
 
@@ -64,6 +33,9 @@ static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned
 {
 	unsigned long pos0 = pos;
 	char c = bp[pos];
+
+	if(c == ';')
+		return pos;
 
 	while(pos<size && c!=']' && c!=')')
 	{
@@ -237,9 +209,12 @@ static int _sgf_fast_parse(const char* bp,unsigned long pos,const unsigned long 
 {
 	while(pos<size)
 	{
-		pos = fp_next_prop(bp,pos,size);
-
 		if(pos==SGF_PARSE_ERROR) break;
+
+		if(bp[pos]==')' || bp[pos]==';')
+			if(cb->node_end)
+				cb->node_end();
+
 		if(bp[pos]==')')
 		{
 			//cerr << filename << " successfully parsed" << endl;
@@ -256,6 +231,7 @@ static int _sgf_fast_parse(const char* bp,unsigned long pos,const unsigned long 
 		if(pos==pos2) pos2 = read_add(bp,pos,size);
 		if(pos==pos2) pos2 = read_play(bp,pos,size);
 		if(pos==pos2) pos2 = read_unkown(bp,pos,size);
+
 		pos = next_char(bp,pos2,size);
 	}
 	return 0;

@@ -246,8 +246,8 @@ const char *argp_program_bug_address = "<pieter.beyens@gmail.com>";
 static char doc[] = "flgoban -- reads, displays and broadcasts sgf";
 static char args_doc[] = "";
 static struct argp_option options[] = {
-	{"width", 'w', "WIDTH", 0, "window width (defaults to 800)" },
-	{"height", 'h', "HEIGHT", 0, "window height (defaults to 800)" },
+	{"width", 'w', "WIDTH", 0, "window width (defaults to 600)" },
+	{"height", 'h', "HEIGHT", 0, "window height (defaults to 600)" },
 	{"port", 'p', "PORT", 0, "listening port (if set to zero then only read from stdin - defaults to 5000)" },
 	{"nogui",'g', 0, 0, "text-only interface (reads and broadcasts sgf)"},
 	{"repeat",'r', 0, 0, "do not expand sgf, just repeat it"},
@@ -341,7 +341,7 @@ int main(int argc, char **argv) {
 	win->end();
 	win->resizable(flgoban);
 	if(!setts.nogui)
-		win->show(argc, argv);
+		win->show();
 
 	g = goban_alloc(19, &gcb);
 	sgf_init(&scb);

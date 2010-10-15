@@ -26,8 +26,8 @@ static unsigned long next_char(const char* bp,unsigned long pos,const unsigned l
 	char c = bp[pos];
 	while( pos<size && (c==' ' || c=='\r' || c=='\n')) { ++pos; c = bp[pos]; }
 	if(pos>=size) return SGF_PARSE_ERROR;
-	if(cb->node && bp[pos]==';' && bp[pos-1]!='\\')
-		cb->node();
+	if(cb->node_end && bp[pos]==';' && ( pos==0 || bp[pos-1]!='\\'))
+		cb->node_end();
 	return pos;
 }
 
@@ -37,7 +37,7 @@ static unsigned long fp_next_prop(const char* bp,unsigned long pos,const unsigne
 	int inProp = 1;
 	char c = bp[pos];
 	if(c==')') {
-		if(cb->node) cb->node();
+		if(cb->node_end) cb->node_end();
 		return pos;
 	}
 	else if(c=='(') return pos;
@@ -60,9 +60,27 @@ static unsigned long fp_next_prop(const char* bp,unsigned long pos,const unsigne
 	return pos;
 }
 
+static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned long size)
+{
+	unsigned long pos0 = pos;
+	char c = bp[pos];
+
+	while(pos<size && c!=']' && c!=')')
+	{
+		pos=next_char(bp,pos,size);
+		c=bp[pos];
+	}
+	if(pos>=size) return SGF_PARSE_ERROR;
+	if(cb->prop_unknown)
+		cb->prop_unknown(bp+pos0, pos-pos0+1);
+	if(c==')') return size;
+	return pos; // character after ']'
+}
+
 static unsigned long fp_skip_prop(const char* bp,unsigned long pos,const unsigned long size)
 {
 	char c = bp[pos];
+
 	while(pos<size && c!='[' && c!=')')
 	{
 		pos=next_char(bp,pos,size);
@@ -237,7 +255,8 @@ static int _sgf_fast_parse(const char* bp,unsigned long pos,const unsigned long 
 		unsigned long pos2 = read_sz(bp,pos,size);
 		if(pos==pos2) pos2 = read_add(bp,pos,size);
 		if(pos==pos2) pos2 = read_play(bp,pos,size);
-		if(pos==pos2) pos2 = fp_skip_prop(bp,pos,size);
+		if(pos==pos2) pos2 = read_unkown(bp,pos,size);
+		//if(pos==pos2) pos2 = fp_skip_prop(bp,pos,size);
 		pos = next_char(bp,pos2,size);
 	}
 	return 0;

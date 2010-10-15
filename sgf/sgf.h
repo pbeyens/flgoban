@@ -14,13 +14,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define SGF_H
 
 struct sgf_cb {
-	void (*node)(void);
+	void (*node_end)(void);
 	void (*sz)(int);
 	void (*b)(char, char);
 	void (*w)(char, char);
 	void (*ab)(char, char);
 	void (*aw)(char, char);
 	void (*ae)(char, char);
+	void (*prop_unknown)(const char*, int s);
 };
 
 extern int sgf_init(const struct sgf_cb *cb);

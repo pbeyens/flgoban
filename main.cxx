@@ -228,7 +228,19 @@ static void sgf_ae(char cx, char cy)
 	}
 }
 
-static const struct sgf_cb scb = { sgf_node, sgf_sz, sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae };
+static void sgf_prop_unknown(const char *prop, int size)
+{
+	//printf("%c - %c\n", *prop, *(prop+size));
+	char *s = (char *)malloc(size+1);
+	strncpy(s,prop,size);
+	//s[size] = '\n';
+	s[size] = '\0';
+	strcat(broadcast_msg, s);
+	//broadcast(broadcast_msg);
+	free(s);
+}
+
+static const struct sgf_cb scb = { sgf_node, sgf_sz, sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, sgf_prop_unknown };
 
 /* EVENTS */
 

@@ -74,7 +74,7 @@ static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned
 	if(cb->prop_unknown)
 		cb->prop_unknown(bp+pos0, pos-pos0+1);
 	if(c==')') return size;
-	return pos; // character after ']'
+	return pos; // ']'
 }
 
 static unsigned long fp_skip_prop(const char* bp,unsigned long pos,const unsigned long size)
@@ -256,7 +256,6 @@ static int _sgf_fast_parse(const char* bp,unsigned long pos,const unsigned long 
 		if(pos==pos2) pos2 = read_add(bp,pos,size);
 		if(pos==pos2) pos2 = read_play(bp,pos,size);
 		if(pos==pos2) pos2 = read_unkown(bp,pos,size);
-		//if(pos==pos2) pos2 = fp_skip_prop(bp,pos,size);
 		pos = next_char(bp,pos2,size);
 	}
 	return 0;

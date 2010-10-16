@@ -19,6 +19,9 @@ all: $(OBJS)
 %.o: %.c
 	$(CXX) $(CXXFLAGS) $(DEBUG) -c $< -o $@
 
+install: ${TARGET}
+	sudo cp ${TARGET} /usr/local/bin	
+
 clean:
 	rm -f ${OBJS} 2> /dev/null
 	rm -f $(TARGET) 2> /dev/null

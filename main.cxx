@@ -233,12 +233,26 @@ static void sgf_ae(char cx, char cy)
 	}
 }
 
+static void sgf_pw(const char *prop, int size)
+{
+	strcat(broadcast_msg, "PW[");
+	strncat(broadcast_msg, prop, size);
+	strcat(broadcast_msg, "]");
+}
+
+static void sgf_pb(const char *prop, int size)
+{
+	strcat(broadcast_msg, "PB[");
+	strncat(broadcast_msg, prop, size);
+	strcat(broadcast_msg, "]");
+}
+
 static void sgf_prop_unknown(const char *prop, int size)
 {
 	strncat(broadcast_msg, prop, size);
 }
 
-static const struct sgf_cb scb = { sgf_node_new, sgf_node_end, sgf_sz, sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, sgf_prop_unknown };
+static const struct sgf_cb scb = { sgf_node_new, sgf_node_end, sgf_sz, sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, sgf_pw, sgf_pb, sgf_prop_unknown };
 
 /* EVENTS */
 

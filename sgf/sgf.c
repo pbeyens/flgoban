@@ -13,12 +13,27 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "sgf.h"
 
 #include <string.h>
+#include <stdio.h>
 #include <assert.h>
 
 #define SGF_PARSE_ERROR 0xffffffff
 #define SGF_INVALID_SZ 0xff
 
 static const struct sgf_cb *cb = 0;
+
+static int is_color(const char* bp,const unsigned long pos)
+{
+	char c = bp[pos];
+	if(c=='B' || c=='W') return 1;
+	else return 0;
+}
+
+static int is_coord(const char* bp,const unsigned long pos)
+{
+	char c = bp[pos];
+	if(c>='a' && c<'t') return 1;
+	else return 0;
+}
 
 static unsigned long next_char(const char* bp,unsigned long pos,const unsigned long size)
 {
@@ -37,6 +52,25 @@ static unsigned long next_char(const char* bp,unsigned long pos,const unsigned l
 	return pos;
 }
 
+static unsigned long read_propid(const char *id,const char* bp,unsigned long pos,const unsigned long size)
+{
+	int len = strlen(id);
+	if(memcmp(id,bp+pos,len)==0 && bp[pos+len]=='[')
+		return pos+len;
+	else
+		return pos;
+}
+
+static unsigned long read_propval_string(const char* bp,unsigned long pos,const unsigned long size)
+{
+	while(bp[pos]!=']') {
+		pos = next_char(bp,pos,size);
+		if(pos>=size)
+			return SGF_PARSE_ERROR;
+	}
+	return pos;
+}
+
 static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned long size)
 {
 	unsigned long pos0 = pos;
@@ -51,34 +85,6 @@ static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned
 	if(cb->prop_unknown)
 		cb->prop_unknown(bp+pos0, pos-pos0+1);
 	return pos; // ']'
-}
-
-static unsigned long fp_skip_prop(const char* bp,unsigned long pos,const unsigned long size)
-{
-	char c = bp[pos];
-
-	while(pos<size && c!='[' && c!=')')
-	{
-		pos=next_char(bp,pos,size);
-		c=bp[pos];
-	}
-	if(pos>=size) return SGF_PARSE_ERROR;
-	if(c==')') return size;
-	return ++pos; // character after '['
-}
-
-static int is_color(const char* bp,const unsigned long pos)
-{
-	char c = bp[pos];
-	if(c=='B' || c=='W') return 1;
-	else return 0;
-}
-
-static int is_coord(const char* bp,const unsigned long pos)
-{
-	char c = bp[pos];
-	if(c>='a' && c<'t') return 1;
-	else return 0;
 }
 
 static unsigned long read_play(const char* bp,unsigned long pos,const unsigned long size)
@@ -188,8 +194,29 @@ static unsigned short read_sz(const char* bp,unsigned long pos,const unsigned lo
 	if(pos2>=size) return pos;
 	if(bp[pos2]!=']') return pos;
 
-	cb->sz(19);
+	if(cb->sz)
+		cb->sz(19);
 
+	return pos2;
+}
+
+static unsigned long read_pw(const char* bp,unsigned long pos,const unsigned long size)
+{
+	unsigned long pos2 = read_propid("PW",bp,pos,size);
+	if(pos2==pos)
+		return pos;
+	pos2 = read_propval_string(bp,pos2,size);
+	if(cb->pw) cb->pw(bp+pos+3,pos2-pos-3);
+	return pos2;
+}
+
+static unsigned long read_pb(const char* bp,unsigned long pos,const unsigned long size)
+{
+	unsigned long pos2 = read_propid("PB",bp,pos,size);
+	if(pos2==pos)
+		return pos;
+	pos2 = read_propval_string(bp,pos2,size);
+	if(cb->pb) cb->pb(bp+pos+3,pos2-pos-3);
 	return pos2;
 }
 
@@ -198,6 +225,8 @@ static unsigned short read_prop(const char* bp,unsigned long pos,const unsigned 
 	unsigned long pos2 = read_sz(bp,pos,size);
 	if(pos==pos2) pos2 = read_add(bp,pos,size);
 	if(pos==pos2) pos2 = read_play(bp,pos,size);
+	if(pos==pos2) pos2 = read_pw(bp,pos,size);
+	if(pos==pos2) pos2 = read_pb(bp,pos,size);
 
 	/* must be last -> just read the unknown property */
 	if(pos==pos2) pos2 = read_unkown(bp,pos,size);

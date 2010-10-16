@@ -39,9 +39,10 @@ const static struct coord handi9[] = {
 };
 
 
-Fl_Goban::Fl_Goban(int x, int y, int w, int h, void (*cbk)(char)): Fl_Widget(x,y,w,h)
+Fl_Goban::Fl_Goban(int x, int y, int w, int h, void (*cbk)(char), void(*cbm)(int,int)): Fl_Widget(x,y,w,h)
 {
 	cb_key = cbk;
+	cb_mou = cbm;
 	g = NULL;
 	marks = NULL;
 	flresize(19);
@@ -50,9 +51,7 @@ Fl_Goban::Fl_Goban(int x, int y, int w, int h, void (*cbk)(char)): Fl_Widget(x,y
 void Fl_Goban::draw()
 {
 	/* draw background */
-	//fl_draw_box(FL_FLAT_BOX, 0, 0, w(), h(), fl_rgb_color(0x6E,0x93,0xA5));
 	fl_draw_box(FL_FLAT_BOX, 0, 0, w(), h(), fl_rgb_color(90,220,180));
-	//fl_draw_box(FL_FLAT_BOX, 0, 0, w(), h(), fl_rgb_color(0xCC,0xCC,0xCC));
 
 	/* borders and lines */
 	draw_lines();
@@ -83,26 +82,14 @@ void Fl_Goban::draw()
 
 void Fl_Goban::draw_lines()
 {
-	int offset_x = 0;
-	int offset_y = 0;
-	int min;
-	if(w() > h()) {
-		offset_x = (w() - h()) / 2;
-		min = h();
-	}
-	else if(h() > w()) {
-		offset_y = (h() - w()) / 2;
-		min = w();
-	}
-	else min = w();
-
-	
 	int i;
-	float d = min/(size+1);
-	fl_rectf(d+offset_x-5, d+offset_y-5, 12+((size-1)*d), 12+((size-1)*d), fl_rgb_color(220,180,90));
+	float offx = offset_x();
+	float offy = offset_y();
+	float d = delta();
+	fl_rectf(d+offx-5, d+offy-5, 12+((size-1)*d), 12+((size-1)*d), fl_rgb_color(220,180,90));
 	fl_color(FL_BLACK);
 	for(i=0;i<size;++i) {
-		int x0, x1, y0, y1;
+		float x0, x1, y0, y1;
 		x0 = x1 = d + i*d;
 		y0 = d;
 		y1 = d + (size-1)*d;
@@ -110,29 +97,20 @@ void Fl_Goban::draw_lines()
 			fl_line_style(FL_SOLID, 2, 0);
 		else
 			fl_line_style(FL_SOLID, 1, 0);
-		fl_line(x0+offset_x,y0+offset_y,x1+offset_x,y1+offset_y); /* vertical */
-		fl_line(y0+offset_x,x0+offset_y,y1+offset_x,x1+offset_y); /* horizontal */
+		fl_line(x0+offx,y0+offy,x1+offx,y1+offy); /* vertical */
+		fl_line(y0+offx,x0+offy,y1+offx,x1+offy); /* horizontal */
 	}
 }
 
 void Fl_Goban::draw_dot(int x, int y, int color_edge, int color_fill, int handicap, int mark)
 {
-	int offset_x = 0;
-	int offset_y = 0;
-	int min;
-	if(w() > h()) {
-		offset_x = (w() - h()) / 2;
-		min = h();
-	}
-	else if(h() > w()) {
-		offset_y = (h() - w()) / 2;
-		min = w();
-	}
-	else min = w();
-	float d = min/(size+1);
-	int c_x = d + x*d;
-	int c_y = d + y*d;
-	int dotsize = 0;
+	float offx = offset_x();
+	float offy = offset_y();
+
+	float d = delta();
+	float c_x = d + x*d;
+	float c_y = d + y*d;
+	float dotsize = 0;
 
 	if(handicap)
 		dotsize = d/4;
@@ -143,7 +121,7 @@ void Fl_Goban::draw_dot(int x, int y, int color_edge, int color_fill, int handic
 
 	if(color_fill) {
 		fl_color(color_fill);
-		fl_pie(c_x+offset_x-(dotsize/2),c_y+offset_y-(dotsize/2), dotsize, dotsize, 0, 360);
+		fl_pie(1+c_x+offx-(dotsize/2),1+c_y+offy-(dotsize/2), dotsize, dotsize, 0, 360);
 	}
 
 	fl_color(color_edge);
@@ -151,7 +129,7 @@ void Fl_Goban::draw_dot(int x, int y, int color_edge, int color_fill, int handic
 		fl_line_style(FL_SOLID, 3, 0);
 	else
 		fl_line_style(FL_SOLID, 1, 0);
-	fl_arc(c_x+offset_x-(dotsize/2),c_y+offset_y-(dotsize/2), dotsize, dotsize, 0, 360);
+	fl_arc(1+c_x+offx-(dotsize/2),1+c_y+offy-(dotsize/2), dotsize, dotsize, 0, 360);
 
 }
 
@@ -208,7 +186,26 @@ void Fl_Goban::draw_stone(int x, int y, int color)
 
 int Fl_Goban::handle(int e)
 {
-	if(e == FL_KEYDOWN)
-		cb_key(Fl::event_key());
+	switch(e) {
+		case FL_FOCUS:
+		case FL_UNFOCUS:
+			return 1;
+		case FL_KEYDOWN:
+			cb_key(Fl::event_key());
+			return 1;
+		case FL_PUSH:
+		{
+	/*
+			int x = Fl::event_x();
+			int y = Fl::event_y();
+			float d = min()/(size+1);
+			float c_x = d + x*d;
+			float c_y = d + y*d;
+*/
+			cb_mou(0,0);
+			return 1;
+		}
+	}
+	return 0;
 }
 

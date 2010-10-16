@@ -168,19 +168,9 @@ static unsigned long read_add(const char* bp,unsigned long pos,const unsigned lo
 
 static unsigned short read_sz(const char* bp,unsigned long pos,const unsigned long size)
 {
-	unsigned long pos2 = pos;
-	if(pos2>=size) return pos;
-	if(bp[pos2]!='S') return pos;
-
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(bp[pos2]!='Z') return pos;
-
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(bp[pos2]!='[') return pos;
-	
-	// from here on we have the correct property
+	unsigned long pos2 = read_propid("SZ",bp,pos,size);
+	if(pos2==pos)
+		return pos;
 
 	pos2 = next_char(bp,pos2,size);
 	if(pos2>=size) return pos;

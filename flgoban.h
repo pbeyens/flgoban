@@ -25,7 +25,7 @@ enum {
 class Fl_Goban: public Fl_Widget
 {
 	public:
-		Fl_Goban(int x, int y, int w, int h, void (*cbk)(char));
+		Fl_Goban(int x, int y, int w, int h, void (*cbk)(char), void (*cbm)(int,int));
 		virtual void draw();
 		virtual int set_stone(int x, int y, int val);
 		virtual int set_mark(int x, int y, int val);
@@ -42,10 +42,16 @@ class Fl_Goban: public Fl_Widget
 
 		inline int pos(int x, int y) { return x*size + y; }
 
+		inline float offset_x() { return w() > h() ? ((float)w()-(float)h())/2 : 0; }
+		inline float offset_y() { return h() > w() ? ((float)h()-(float)w())/2 : 0; }
+		inline float min() { return h() > w() ? (float)w() : (float)h(); }
+		inline float delta() { return min()/(size+1); }
+
 		struct goban *g;
 		int size;
 		int *marks;
 		void (*cb_key)(char key);
+		void (*cb_mou)(int, int);
 
 	private:
 };

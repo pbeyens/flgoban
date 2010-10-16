@@ -1,6 +1,6 @@
 CXX      = g++
 DEBUG    = -g
-CXXFLAGS = $(shell fltk-config --cxxflags ) -I. -Isgf -Igoban -I/Users/Pieter/argp-standalone-1.3/
+CXXFLAGS = $(shell fltk-config --cxxflags ) -Werror -Wall -I. -Isgf -Igoban -I/Users/Pieter/argp-standalone-1.3/
 LDFLAGS  = $(shell fltk-config --ldstaticflags ) -L/Users/Pieter/argp-standalone-1.3/ -largp
 LINK     = $(CXX)
 

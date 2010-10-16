@@ -263,6 +263,13 @@ static void ev_key(char k)
 	broadcast(e);
 }
 
+static void ev_mou(int x, int y)
+{
+	char e[100];
+	sprintf(e, "MOU[%c%c];\n", int2sgf(x),int2sgf(y));
+	broadcast(e);
+}
+
 
 /* ARGP */
 const char *argp_program_version = "flgoban 0.1";
@@ -358,7 +365,7 @@ int main(int argc, char **argv) {
 
 	win = new Fl_Double_Window(setts.width,setts.height);
 	win->begin();
-	flgoban = new Fl_Goban(0,0,setts.width,setts.height, ev_key);
+	flgoban = new Fl_Goban(0,0,setts.width,setts.height, ev_key, ev_mou);
 	//textbuffer = new Fl_Text_Buffer();
 	//comment = new Fl_Text_Editor(10,650,WINDOW_WIDTH-20,90,0);
 	//comment->buffer(textbuffer);

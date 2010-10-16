@@ -117,7 +117,7 @@ void Fl_Goban::draw_dot(int x, int y, int color_edge, int color_fill, int handic
 	else if(mark)
 		dotsize = d/2;
 	else
-		dotsize = d-4;
+		dotsize = d/1.2;
 
 	if(color_fill) {
 		fl_color(color_fill);
@@ -130,7 +130,6 @@ void Fl_Goban::draw_dot(int x, int y, int color_edge, int color_fill, int handic
 	else
 		fl_line_style(FL_SOLID, 1, 0);
 	fl_arc(1+c_x+offx-(dotsize/2),1+c_y+offy-(dotsize/2), dotsize, dotsize, 0, 360);
-
 }
 
 void Fl_Goban::draw_mark_circle(int x, int y)
@@ -195,14 +194,17 @@ int Fl_Goban::handle(int e)
 			return 1;
 		case FL_PUSH:
 		{
-	/*
-			int x = Fl::event_x();
-			int y = Fl::event_y();
-			float d = min()/(size+1);
-			float c_x = d + x*d;
-			float c_y = d + y*d;
-*/
-			cb_mou(0,0);
+			float x = Fl::event_x();
+			x -= offset_x();
+			x -= delta()/2;
+			x /= delta();
+
+			float y = Fl::event_y();
+			y -= offset_y();
+			y -= delta()/2;
+			y /= delta();
+		
+			cb_mou(x,y);
 			return 1;
 		}
 	}

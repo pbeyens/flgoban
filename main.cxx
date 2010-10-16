@@ -129,9 +129,14 @@ static void goban_ae(struct goban *gob, int x, int y)
 static const struct goban_cb gcb = { goban_ab, goban_aw, goban_ae };
 
 /* SGF */
-static void sgf_node(void)
+static void sgf_node_new(void)
 {
-	strcat(broadcast_msg, ";\n");
+	strcat(broadcast_msg, ";");
+}
+
+static void sgf_node_end(void)
+{
+	strcat(broadcast_msg, "\n");
 }
 
 static void sgf_sz(int s)
@@ -233,7 +238,7 @@ static void sgf_prop_unknown(const char *prop, int size)
 	strncat(broadcast_msg, prop, size);
 }
 
-static const struct sgf_cb scb = { sgf_node, sgf_sz, sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, sgf_prop_unknown };
+static const struct sgf_cb scb = { sgf_node_new, sgf_node_end, sgf_sz, sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, sgf_prop_unknown };
 
 /* EVENTS */
 

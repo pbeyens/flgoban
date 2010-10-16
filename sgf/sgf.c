@@ -22,10 +22,18 @@ static const struct sgf_cb *cb = 0;
 
 static unsigned long next_char(const char* bp,unsigned long pos,const unsigned long size)
 {
-	if(pos<size) ++pos;
+	++pos;
+	if(pos>=size)
+		return SGF_PARSE_ERROR;
 	char c = bp[pos];
-	while( pos<size && (c==' ' || c=='\r' || c=='\n')) { ++pos; c = bp[pos]; }
-	if(pos>=size) return SGF_PARSE_ERROR;
+	while(c==' ' || c=='\r' || c=='\n') {
+		++pos;
+		if(pos>=size)
+			return SGF_PARSE_ERROR;
+		c = bp[pos];
+	}
+	if(c=='\\') /* ignore escaped characters */
+		return next_char(bp, pos+1, size);
 	return pos;
 }
 
@@ -34,18 +42,14 @@ static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned
 	unsigned long pos0 = pos;
 	char c = bp[pos];
 
-	if(c == ';')
-		return pos;
-
-	while(pos<size && c!=']' && c!=')')
+	while(c!=']')
 	{
 		pos=next_char(bp,pos,size);
+		if(pos>=size) return SGF_PARSE_ERROR;
 		c=bp[pos];
 	}
-	if(pos>=size) return SGF_PARSE_ERROR;
 	if(cb->prop_unknown)
 		cb->prop_unknown(bp+pos0, pos-pos0+1);
-	if(c==')') return size;
 	return pos; // ']'
 }
 
@@ -81,7 +85,6 @@ static unsigned long read_play(const char* bp,unsigned long pos,const unsigned l
 {
 	unsigned long pos2 = pos;
 
-	//cerr << bp[pos2] << " ";
 	if(pos2>=size) return pos;
 	if(!is_color(bp,pos2)) return pos;
 
@@ -101,10 +104,6 @@ static unsigned long read_play(const char* bp,unsigned long pos,const unsigned l
 		if(pos2>=size) return pos;
 		if(bp[pos2]!=']') return pos;
 	
-		//cerr << bp[pos]  << bp[pos+2] << bp[pos+3] << endl;
-		//unsigned short x = (unsigned short)bp[pos+2]-'a';
-		//unsigned short y = (unsigned short)bp[pos+3]-'a';
-		//cerr << "Y=" << y << endl;
 		if(bp[pos]=='B' && cb->b) cb->b(bp[pos+2],bp[pos+3]);
 		else if(bp[pos]=='W' && cb->w) cb->w(bp[pos+2],bp[pos+3]);
 		return pos2;
@@ -114,17 +113,12 @@ static unsigned long read_play(const char* bp,unsigned long pos,const unsigned l
 		pos2 = next_char(bp,pos2,size);
 		if(pos2>=size) return pos;
 		if(bp[pos2]!='t') return pos;
-
 		// pass move (SGF FF3)
-		//cerr << bp[pos] << "pass" << endl;
-		//p_gtree->pass((bp[pos]=='B') ? COLOR1:COLOR2);
 		return pos2;
 	}
 	else if(bp[pos2]==']')
 	{
 		// pass move (SGF FF4)
-		//cerr << bp[pos] << "pass" << endl;
-		//p_gtree->pass((bp[pos]=='B') ? COLOR1:COLOR2);
 		return pos2;
 	}
 	else return pos;
@@ -135,7 +129,6 @@ static unsigned long read_add(const char* bp,unsigned long pos,const unsigned lo
 	unsigned long pos2 = pos;
 	unsigned char color;
 
-	//cerr << bp[pos2] << " ";
 	if(pos2>=size) return pos;
 	if(bp[pos2]!='A') return pos;
 	pos2 = next_char(bp,pos2,size);
@@ -160,11 +153,6 @@ static unsigned long read_add(const char* bp,unsigned long pos,const unsigned lo
 		if(pos2>=size) return pos;
 		if(bp[pos2]!=']') return pos;
 
-		//cerr << color << bp[pos2-2] << bp[pos2-1] << endl;
-		//unsigned short x = (unsigned short)bp[pos2-2]-'a';
-		//unsigned short y = (unsigned short)bp[pos2-1]-'a';
-		//cerr << "X=" << x << endl;
-		//cerr << "Y=" << y << endl;
 		if(color=='B' && cb->ab) cb->ab(bp[pos2-2],bp[pos2-1]);
 		else if(color=='W' && cb->aw) cb->aw(bp[pos2-2],bp[pos2-1]);
 		else if(color=='E' && cb->ae) cb->ae(bp[pos2-2],bp[pos2-1]);
@@ -205,34 +193,49 @@ static unsigned short read_sz(const char* bp,unsigned long pos,const unsigned lo
 	return pos2;
 }
 
+static unsigned short read_prop(const char* bp,unsigned long pos,const unsigned long size)
+{
+	unsigned long pos2 = read_sz(bp,pos,size);
+	if(pos==pos2) pos2 = read_add(bp,pos,size);
+	if(pos==pos2) pos2 = read_play(bp,pos,size);
+
+	/* must be last -> just read the unknown property */
+	if(pos==pos2) pos2 = read_unkown(bp,pos,size);
+	return pos2;
+}
+
+static unsigned short read_node(const char* bp,unsigned long pos,const unsigned long size)
+{
+	if(bp[pos]!=';')
+		return pos;
+	pos = next_char(bp,pos,size);
+	if(cb->node_new)
+		cb->node_new();
+	while(pos<size && bp[pos]!=';' && bp[pos]!=')' && bp[pos]!='(') {
+		pos = read_prop(bp,pos,size);
+		pos = next_char(bp,pos,size);
+	}
+	if(cb->node_end)
+		cb->node_end();
+	return --pos; /* do not include next ';' or ')' */
+}
+
 static int _sgf_fast_parse(const char* bp,unsigned long pos,const unsigned long size)
 {
 	while(pos<size)
 	{
-		if(pos==SGF_PARSE_ERROR) break;
-
-		if(bp[pos]==')' || bp[pos]==';')
-			if(cb->node_end)
-				cb->node_end();
-
 		if(bp[pos]==')')
 		{
-			//cerr << filename << " successfully parsed" << endl;
+			// only the main var is parsed
 			return 1;
 		}
 		else if(bp[pos]=='(')
 		{
 			int rv = _sgf_fast_parse(bp, ++pos, size);
-			//gtree->up();
 			return rv;
 		}
-
-		unsigned long pos2 = read_sz(bp,pos,size);
-		if(pos==pos2) pos2 = read_add(bp,pos,size);
-		if(pos==pos2) pos2 = read_play(bp,pos,size);
-		if(pos==pos2) pos2 = read_unkown(bp,pos,size);
-
-		pos = next_char(bp,pos2,size);
+		pos = read_node(bp,pos,size);
+		pos = next_char(bp,pos,size);
 	}
 	return 0;
 }

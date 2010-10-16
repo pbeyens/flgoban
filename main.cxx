@@ -44,7 +44,7 @@ static char broadcast_msg[10000];
 
 struct settings
 {
-	int width, height, port, nogui, repeat;
+	int width, height, port, nogui, expand;
 };
 static struct settings setts;
 
@@ -100,7 +100,7 @@ static void goban_ab(struct goban *gob, int x, int y)
 {
 	char msg[10];
 	flgoban->set_stone(x,y,black);
-	if(!setts.repeat) {
+	if(setts.expand) {
 		sprintf(msg, "AB[%c%c]", int2sgf(x),int2sgf(y));
 		strcat(broadcast_msg, msg);
 	}
@@ -110,7 +110,7 @@ static void goban_aw(struct goban *gob, int x, int y)
 {
 	char msg[10];
 	flgoban->set_stone(x,y,white);
-	if(!setts.repeat) {
+	if(setts.expand) {
 		sprintf(msg, "AW[%c%c]", int2sgf(x),int2sgf(y));
 		strcat(broadcast_msg, msg);
 	}
@@ -120,7 +120,7 @@ static void goban_ae(struct goban *gob, int x, int y)
 {
 	char msg[10];
 	flgoban->set_stone(x,y,empty);
-	if(!setts.repeat) {
+	if(setts.expand) {
 		sprintf(msg, "AE[%c%c]", int2sgf(x),int2sgf(y));
 		strcat(broadcast_msg, msg);
 	}
@@ -150,7 +150,7 @@ static void sgf_b(char cx, char cy)
 	char msg[20];
 	if(cx_prev!=-1) {
 		flgoban->set_mark(sgf2int(cx_prev),sgf2int(cy_prev),empty);
-		if(!setts.repeat) {
+		if(setts.expand) {
 			sprintf(msg, "ME[%c%c]", cx_prev,cy_prev);
 			strcat(broadcast_msg, msg);
 		}
@@ -158,7 +158,7 @@ static void sgf_b(char cx, char cy)
 	goban_play(g, sgf2int(cx), sgf2int(cy), black);
 	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
 
-	if(setts.repeat) {
+	if(!setts.expand) {
 		sprintf(msg, "B[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
@@ -176,7 +176,7 @@ static void sgf_w(char cx, char cy)
 	char msg[20];
 	if(cx_prev!=-1) {
 		flgoban->set_mark(sgf2int(cx_prev),sgf2int(cy_prev),empty);
-		if(!setts.repeat) {
+		if(setts.expand) {
 			sprintf(msg, "ME[%c%c]", cx_prev,cy_prev);
 			strcat(broadcast_msg, msg);
 		}
@@ -185,7 +185,7 @@ static void sgf_w(char cx, char cy)
 	goban_play(g, sgf2int(cx), sgf2int(cy), white);
 	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
 
-	if(setts.repeat) {
+	if(!setts.expand) {
 		sprintf(msg, "W[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
@@ -202,7 +202,7 @@ static void sgf_ab(char cx, char cy)
 {
 	char msg[10];
 	goban_set(g, sgf2int(cx), sgf2int(cy), black);
-	if(setts.repeat) {
+	if(!setts.expand) {
 		sprintf(msg, "AB[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
@@ -212,7 +212,7 @@ static void sgf_aw(char cx, char cy)
 {
 	char msg[10];
 	goban_set(g, sgf2int(cx), sgf2int(cy), white);
-	if(setts.repeat) {
+	if(!setts.expand) {
 		sprintf(msg, "AW[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
@@ -222,7 +222,7 @@ static void sgf_ae(char cx, char cy)
 {
 	char msg[10];
 	goban_set(g, sgf2int(cx), sgf2int(cy), empty);
-	if(setts.repeat) {
+	if(!setts.expand) {
 		sprintf(msg, "AE[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
@@ -255,7 +255,7 @@ static struct argp_option options[] = {
 	{"height", 'h', "HEIGHT", 0, "window height (defaults to 600)" },
 	{"port", 'p', "PORT", 0, "listening port (if set to zero then only read from stdin - defaults to 5000)" },
 	{"nogui",'g', 0, 0, "text-only interface (reads and broadcasts sgf)"},
-	{"repeat",'r', 0, 0, "do not expand sgf, just repeat it"},
+	{"expand",'e', 0, 0, "expand sgf"},
 	{ 0 }
 };
 static error_t parse_opt (int key, char *arg, struct argp_state *state)
@@ -283,8 +283,8 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 		case 'g':
 			setts.nogui = 1;
 			break;
-		case 'r':
-			setts.repeat = 1;
+		case 'e':
+			setts.expand = 1;
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;

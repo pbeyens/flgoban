@@ -152,7 +152,6 @@ static void sgf_b(char cx, char cy)
 {
 	char msg[20];
 	goban_play(g, sgf2int(cx), sgf2int(cy), black);
-	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
 
 	if(!setts.expand) {
 		sprintf(msg, "B[%c%c]", cx,cy);
@@ -165,7 +164,6 @@ static void sgf_w(char cx, char cy)
 	char msg[20];
 
 	goban_play(g, sgf2int(cx), sgf2int(cy), white);
-	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
 
 	if(!setts.expand) {
 		sprintf(msg, "W[%c%c]", cx,cy);

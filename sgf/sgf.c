@@ -71,6 +71,15 @@ static unsigned long read_propval_string(const char* bp,unsigned long pos,const 
 	return pos;
 }
 
+static unsigned long read_propval_coord(const char* bp,unsigned long pos,const unsigned long size, char *a, char *b)
+{
+	int i = sscanf(bp+pos,"[%c%c]", a, b);
+	if(i==2)
+		return pos + 3;
+	else
+		return pos;
+}
+
 static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned long size)
 {
 	unsigned long pos0 = pos;
@@ -210,12 +219,36 @@ static unsigned long read_pb(const char* bp,unsigned long pos,const unsigned lon
 	return pos2;
 }
 
+static unsigned long read_cr(const char* bp,unsigned long pos,const unsigned long size)
+{
+	char a, b;
+	unsigned long pos2 = read_propid("CR",bp,pos,size);
+	if(pos2==pos)
+		return pos;
+	pos2 = read_propval_coord(bp,pos2,size,&a,&b);
+	if(cb->cr) cb->cr(a,b);
+	return pos2;
+}
+
+static unsigned long read_me(const char* bp,unsigned long pos,const unsigned long size)
+{
+	char a, b;
+	unsigned long pos2 = read_propid("ME",bp,pos,size);
+	if(pos2==pos)
+		return pos;
+	pos2 = read_propval_coord(bp,pos2,size,&a,&b);
+	if(cb->me) cb->me(a,b);
+	return pos2;
+}
+
 static unsigned short read_prop(const char* bp,unsigned long pos,const unsigned long size)
 {
 	unsigned long pos2 = read_sz(bp,pos,size);
 	if(pos==pos2) pos2 = read_add(bp,pos,size);
 	if(pos==pos2) pos2 = read_play(bp,pos,size);
 	if(pos==pos2) pos2 = read_pw(bp,pos,size);
+	if(pos==pos2) pos2 = read_cr(bp,pos,size);
+	if(pos==pos2) pos2 = read_me(bp,pos,size);
 	if(pos==pos2) pos2 = read_pb(bp,pos,size);
 
 	/* must be last -> just read the unknown property */

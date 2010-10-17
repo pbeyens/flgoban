@@ -24,6 +24,8 @@ struct sgf_cb {
 	void (*ae)(char, char);
 	void (*pw)(const char*, int s);
 	void (*pb)(const char*, int s);
+	void (*cr)(char, char);
+	void (*me)(char, char);
 	void (*prop_unknown)(const char*, int s);
 };
 

@@ -39,7 +39,6 @@ static Fl_Goban *flgoban = NULL;
 //static Fl_Text_Editor *comment = NULL;
 static list<int> fds;
 static struct goban *g = NULL;
-static char cx_prev = -1, cy_prev = -1;
 static char broadcast_msg[10000];
 
 struct settings
@@ -145,7 +144,6 @@ static void sgf_sz(int s)
 	goban_free(g);
 	g = goban_alloc(s, &gcb);
 	flgoban->flresize(s);
-	cx_prev = -1, cy_prev = -1;
 	sprintf(msg, "SZ[%d]", s);
 	strcat(broadcast_msg, msg);
 }
@@ -153,13 +151,6 @@ static void sgf_sz(int s)
 static void sgf_b(char cx, char cy)
 {
 	char msg[20];
-	if(cx_prev!=-1) {
-		flgoban->set_mark(sgf2int(cx_prev),sgf2int(cy_prev),empty);
-		if(setts.expand) {
-			sprintf(msg, "ME[%c%c]", cx_prev,cy_prev);
-			strcat(broadcast_msg, msg);
-		}
-	}
 	goban_play(g, sgf2int(cx), sgf2int(cy), black);
 	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
 
@@ -167,25 +158,11 @@ static void sgf_b(char cx, char cy)
 		sprintf(msg, "B[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
-	else {
-		sprintf(msg, "CR[%c%c]", cx, cy);
-		strcat(broadcast_msg, msg);
-	}
-
-	cx_prev = cx;
-	cy_prev = cy;
 }
 
 static void sgf_w(char cx, char cy)
 {
 	char msg[20];
-	if(cx_prev!=-1) {
-		flgoban->set_mark(sgf2int(cx_prev),sgf2int(cy_prev),empty);
-		if(setts.expand) {
-			sprintf(msg, "ME[%c%c]", cx_prev,cy_prev);
-			strcat(broadcast_msg, msg);
-		}
-	}
 
 	goban_play(g, sgf2int(cx), sgf2int(cy), white);
 	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
@@ -194,13 +171,6 @@ static void sgf_w(char cx, char cy)
 		sprintf(msg, "W[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
-	else {
-		sprintf(msg, "CR[%c%c]", cx, cy);
-		strcat(broadcast_msg, msg);
-	}
-
-	cx_prev = cx;
-	cy_prev = cy;
 }
 
 static void sgf_ab(char cx, char cy)
@@ -247,26 +217,48 @@ static void sgf_pb(const char *prop, int size)
 	strcat(broadcast_msg, "]");
 }
 
+static void sgf_cr(char cx, char cy)
+{
+	char msg[10];
+	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
+	sprintf(msg, "CR[%c%c]", cx,cy);
+	strcat(broadcast_msg, msg);
+}
+
+static void sgf_me(char cx, char cy)
+{
+	char msg[10];
+	flgoban->set_mark(sgf2int(cx),sgf2int(cy),empty);
+	sprintf(msg, "ME[%c%c]", cx,cy);
+	strcat(broadcast_msg, msg);
+}
+
 static void sgf_prop_unknown(const char *prop, int size)
 {
 	strncat(broadcast_msg, prop, size);
 }
 
-static const struct sgf_cb scb = { sgf_node_new, sgf_node_end, sgf_sz, sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, sgf_pw, sgf_pb, sgf_prop_unknown };
+static const struct sgf_cb scb = { \
+	sgf_node_new, sgf_node_end, \
+	sgf_sz, \
+	sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, \
+	sgf_pw, sgf_pb, \
+	sgf_cr, sgf_me, \
+	sgf_prop_unknown };
 
 /* EVENTS */
 
 static void ev_key(char k)
 {
 	char e[100];
-	sprintf(e, "KEY[%c];\n", k);
+	sprintf(e, ";KEY[%c]\n", k);
 	broadcast(e);
 }
 
 static void ev_mou(int x, int y)
 {
 	char e[100];
-	sprintf(e, "MOU[%c%c];\n", int2sgf(x),int2sgf(y));
+	sprintf(e, ";MOU[%c%c]\n", int2sgf(x),int2sgf(y));
 	broadcast(e);
 }
 

@@ -29,6 +29,7 @@ class Fl_Goban: public Fl_Widget
 		virtual void draw();
 		virtual int set_stone(int x, int y, int val);
 		virtual int set_mark(int x, int y, int val);
+		virtual void clear_marks();
 		virtual void flclear();
 		virtual void flresize(int size);
 		virtual int handle(int e);

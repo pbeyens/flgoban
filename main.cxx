@@ -43,7 +43,7 @@ static char broadcast_msg[10000];
 
 struct settings
 {
-	int width, height, port, nogui, expand;
+	int width, height, port, nogui, expand, nomark;
 };
 static struct settings setts;
 
@@ -130,6 +130,7 @@ static const struct goban_cb gcb = { goban_ab, goban_aw, goban_ae };
 /* SGF */
 static void sgf_node_new(void)
 {
+	flgoban->clear_marks();
 	strcat(broadcast_msg, ";");
 }
 
@@ -155,8 +156,12 @@ static void sgf_b(char cx, char cy)
 
 	if(!setts.expand) {
 		sprintf(msg, "B[%c%c]", cx,cy);
-		strcat(broadcast_msg, msg);
 	}
+	else if (!setts.nomark) {
+		flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
+		sprintf(msg, "CR[%c%c]", cx,cy);
+	}
+	strcat(broadcast_msg, msg);
 }
 
 static void sgf_w(char cx, char cy)
@@ -169,6 +174,11 @@ static void sgf_w(char cx, char cy)
 		sprintf(msg, "W[%c%c]", cx,cy);
 		strcat(broadcast_msg, msg);
 	}
+	else if(!setts.nomark) {
+		flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
+		sprintf(msg, "CR[%c%c]", cx,cy);
+	}
+	strcat(broadcast_msg, msg);
 }
 
 static void sgf_ab(char cx, char cy)
@@ -272,6 +282,7 @@ static struct argp_option options[] = {
 	{"port", 'p', "PORT", 0, "listening port (if set to zero then only read from stdin - defaults to 5000)" },
 	{"nogui",'g', 0, 0, "text-only interface (reads and broadcasts sgf)"},
 	{"expand",'e', 0, 0, "expand sgf"},
+	{"nomark",'m', 0, 0, "do not set mark after play"},
 	{ 0 }
 };
 static error_t parse_opt (int key, char *arg, struct argp_state *state)
@@ -301,6 +312,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 			break;
 		case 'e':
 			setts.expand = 1;
+			break;
+		case 'm':
+			setts.nomark = 1;
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;

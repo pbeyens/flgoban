@@ -156,6 +156,11 @@ int Fl_Goban::set_mark(int x, int y, int val)
 	return 0;
 }
 
+void Fl_Goban::clear_marks()
+{
+	memset(marks,empty,size*size*sizeof(int));
+}
+
 void Fl_Goban::flclear()
 {
 	flresize(size);

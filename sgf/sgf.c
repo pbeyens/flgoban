@@ -16,280 +16,283 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <stdio.h>
 #include <assert.h>
 
-#define SGF_PARSE_ERROR 0xffffffff
-#define SGF_INVALID_SZ 0xff
-
 static const struct sgf_cb *cb = 0;
 
-static int is_color(const char* bp,const unsigned long pos)
+static int is_lcletter(const char *sgf)
 {
-	char c = bp[pos];
-	if(c=='B' || c=='W') return 1;
-	else return 0;
-}
-
-static int is_coord(const char* bp,const unsigned long pos)
-{
-	char c = bp[pos];
-	if(c>='a' && c<'t') return 1;
-	else return 0;
-}
-
-static unsigned long next_char(const char* bp,unsigned long pos,const unsigned long size)
-{
-	++pos;
-	if(pos>=size)
-		return SGF_PARSE_ERROR;
-	char c = bp[pos];
-	while(c==' ' || c=='\r' || c=='\n') {
-		++pos;
-		if(pos>=size)
-			return SGF_PARSE_ERROR;
-		c = bp[pos];
-	}
-	if(c=='\\') /* ignore escaped characters */
-		return next_char(bp, pos+1, size);
-	return pos;
-}
-
-static unsigned long read_propid(const char *id,const char* bp,unsigned long pos,const unsigned long size)
-{
-	int len = strlen(id);
-	if(memcmp(id,bp+pos,len)==0 && bp[pos+len]=='[')
-		return pos+len;
-	else
-		return pos;
-}
-
-static unsigned long read_propval_string(const char* bp,unsigned long pos,const unsigned long size)
-{
-	while(bp[pos]!=']') {
-		pos = next_char(bp,pos,size);
-		if(pos>=size)
-			return SGF_PARSE_ERROR;
-	}
-	return pos;
-}
-
-static unsigned long read_propval_coord(const char* bp,unsigned long pos,const unsigned long size, char *a, char *b)
-{
-	int i = sscanf(bp+pos,"[%c%c]", a, b);
-	if(i==2)
-		return pos + 3;
-	else
-		return pos;
-}
-
-static unsigned long read_unkown(const char* bp,unsigned long pos,const unsigned long size)
-{
-	unsigned long pos0 = pos;
-	char c = bp[pos];
-
-	while(c!=']')
-	{
-		pos=next_char(bp,pos,size);
-		if(pos>=size) return SGF_PARSE_ERROR;
-		c=bp[pos];
-	}
-	if(cb->prop_unknown)
-		cb->prop_unknown(bp+pos0, pos-pos0+1);
-	return pos; // ']'
-}
-
-static unsigned long read_play(const char* bp,unsigned long pos,const unsigned long size)
-{
-	unsigned long pos2 = pos;
-
-	if(pos2>=size) return pos;
-	if(!is_color(bp,pos2)) return pos;
-
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(bp[pos2]!='[') return pos;
-
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(is_coord(bp,pos2))
-	{
-		pos2 = next_char(bp,pos2,size);
-		if(pos2>=size) return pos;
-		if(!is_coord(bp,pos2)) return pos;
-
-		pos2 = next_char(bp,pos2,size);
-		if(pos2>=size) return pos;
-		if(bp[pos2]!=']') return pos;
-	
-		if(bp[pos]=='B' && cb->b) cb->b(bp[pos+2],bp[pos+3]);
-		else if(bp[pos]=='W' && cb->w) cb->w(bp[pos+2],bp[pos+3]);
-		return pos2;
-	}
-	else if(bp[pos2]=='t') 
-	{
-		pos2 = next_char(bp,pos2,size);
-		if(pos2>=size) return pos;
-		if(bp[pos2]!='t') return pos;
-		// pass move (SGF FF3)
-		return pos2;
-	}
-	else if(bp[pos2]==']')
-	{
-		// pass move (SGF FF4)
-		return pos2;
-	}
-	else return pos;
-}
-
-static unsigned long read_add(const char* bp,unsigned long pos,const unsigned long size)
-{
-	unsigned long pos2 = pos;
-	unsigned char color;
-
-	if(pos2>=size) return pos;
-	if(bp[pos2]!='A') return pos;
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(!is_color(bp,pos2) && bp[pos2]!='E') return pos;
-	color = bp[pos2];
-
-	while(1) {
-		pos2 = next_char(bp,pos2,size);
-		if(pos2>=size) return pos;
-		if(bp[pos2]!='[') return pos;
-
-		pos2 = next_char(bp,pos2,size);
-		if(pos2>=size) return pos;
-		if(!is_coord(bp,pos2)) return pos;
-		
-		pos2 = next_char(bp,pos2,size);
-		if(pos2>=size) return pos;
-		if(!is_coord(bp,pos2)) return pos;
-
-		pos2 = next_char(bp,pos2,size);
-		if(pos2>=size) return pos;
-		if(bp[pos2]!=']') return pos;
-
-		if(color=='B' && cb->ab) cb->ab(bp[pos2-2],bp[pos2-1]);
-		else if(color=='W' && cb->aw) cb->aw(bp[pos2-2],bp[pos2-1]);
-		else if(color=='E' && cb->ae) cb->ae(bp[pos2-2],bp[pos2-1]);
-	}
-	return pos2;
-}
-
-static unsigned short read_sz(const char* bp,unsigned long pos,const unsigned long size)
-{
-	unsigned long pos2 = read_propid("SZ",bp,pos,size);
-	if(pos2==pos)
-		return pos;
-
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(bp[pos2]!='1') return pos;
-
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(bp[pos2]!='9') return pos;
-
-	pos2 = next_char(bp,pos2,size);
-	if(pos2>=size) return pos;
-	if(bp[pos2]!=']') return pos;
-
-	if(cb->sz)
-		cb->sz(19);
-
-	return pos2;
-}
-
-static unsigned long read_pw(const char* bp,unsigned long pos,const unsigned long size)
-{
-	unsigned long pos2 = read_propid("PW",bp,pos,size);
-	if(pos2==pos)
-		return pos;
-	pos2 = read_propval_string(bp,pos2,size);
-	if(cb->pw) cb->pw(bp+pos+3,pos2-pos-3);
-	return pos2;
-}
-
-static unsigned long read_pb(const char* bp,unsigned long pos,const unsigned long size)
-{
-	unsigned long pos2 = read_propid("PB",bp,pos,size);
-	if(pos2==pos)
-		return pos;
-	pos2 = read_propval_string(bp,pos2,size);
-	if(cb->pb) cb->pb(bp+pos+3,pos2-pos-3);
-	return pos2;
-}
-
-static unsigned long read_cr(const char* bp,unsigned long pos,const unsigned long size)
-{
-	char a, b;
-	unsigned long pos2 = read_propid("CR",bp,pos,size);
-	if(pos2==pos)
-		return pos;
-	pos2 = read_propval_coord(bp,pos2,size,&a,&b);
-	if(cb->cr) cb->cr(a,b);
-	return pos2;
-}
-
-static unsigned long read_me(const char* bp,unsigned long pos,const unsigned long size)
-{
-	char a, b;
-	unsigned long pos2 = read_propid("ME",bp,pos,size);
-	if(pos2==pos)
-		return pos;
-	pos2 = read_propval_coord(bp,pos2,size,&a,&b);
-	if(cb->me) cb->me(a,b);
-	return pos2;
-}
-
-static unsigned short read_prop(const char* bp,unsigned long pos,const unsigned long size)
-{
-	unsigned long pos2 = read_sz(bp,pos,size);
-	if(pos==pos2) pos2 = read_add(bp,pos,size);
-	if(pos==pos2) pos2 = read_play(bp,pos,size);
-	if(pos==pos2) pos2 = read_pw(bp,pos,size);
-	if(pos==pos2) pos2 = read_cr(bp,pos,size);
-	if(pos==pos2) pos2 = read_me(bp,pos,size);
-	if(pos==pos2) pos2 = read_pb(bp,pos,size);
-
-	/* must be last -> just read the unknown property */
-	if(pos==pos2) pos2 = read_unkown(bp,pos,size);
-	return pos2;
-}
-
-static unsigned short read_node(const char* bp,unsigned long pos,const unsigned long size)
-{
-	if(bp[pos]!=';')
-		return pos;
-	pos = next_char(bp,pos,size);
-	if(cb->node_new)
-		cb->node_new();
-	while(pos<size && bp[pos]!=';' && bp[pos]!=')' && bp[pos]!='(') {
-		pos = read_prop(bp,pos,size);
-		pos = next_char(bp,pos,size);
-	}
-	if(cb->node_end)
-		cb->node_end();
-	return --pos; /* do not include next ';' or ')' */
-}
-
-static int _sgf_fast_parse(const char* bp,unsigned long pos,const unsigned long size)
-{
-	while(pos<size)
-	{
-		if(bp[pos]==')')
-		{
-			// only the main var is parsed
-			return 1;
-		}
-		else if(bp[pos]=='(')
-		{
-			int rv = _sgf_fast_parse(bp, ++pos, size);
-			return rv;
-		}
-		pos = read_node(bp,pos,size);
-		pos = next_char(bp,pos,size);
-	}
+	if(*sgf>='a' && *sgf<='z')
+		return 1;
 	return 0;
+}
+
+static int is_point(const char *sgf)
+{
+	if(is_lcletter(sgf) && is_lcletter(sgf+1))
+		return 1;
+	else
+		return 0;
+}
+
+static int is_whitespace(const char *sgf)
+{
+	if(*sgf==' ' || *sgf=='\r' || *sgf=='\n' || *sgf=='\t' || *sgf=='(' || *sgf==')')
+		return 1;
+	return 0;
+}
+static int is_ucletter(const char *sgf)
+{
+	if(*sgf>='A' && *sgf<='Z')
+		return 1;
+	return 0;
+}
+
+/*
+static int is_digit(const char *sgf)
+{
+	if(*sgf>='1' && *sgf<='9')
+		return 1;
+	return 0;
+}
+
+static int is_double(const char *sgf)
+{
+	if(*sgf=='1' || *sgf=='2') return 1;
+	else return 0;
+}
+
+static int is_color(const char *sgf)
+{
+	if(*sgf=='B' || *sgf=='W') return 1;
+	else return 0;
+}
+
+static int is_number(const char *sgf)
+{
+	if(is_digit(sgf))
+		return 1;
+	if((*sgf=='+' || *sgf=='-') && is_digit(sgf+1))
+		return 1;
+	return 0;
+}
+
+static int is_text(const char *sgf)
+{
+	if(is_ucletter(sgf) || is_lcletter(sgf) || is_whitespace(sgf))
+		return 1;
+	return 0;
+}
+*/
+
+static const char *valuetype(const char *sgf)
+{
+	while(*sgf != ']')
+		++sgf;
+	return sgf;
+}
+
+static const char *cvaluetype(const char *sgf)
+{
+	return valuetype(sgf);
+}
+
+static const char *propident(const char *sgf)
+{
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	while(is_ucletter(sgf))
+		++sgf;
+	return sgf;
+}
+
+static const char *propvalue(const char *sgf)
+{
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *start = sgf;
+	if(*sgf!='[')
+		return start;
+	++sgf;
+	sgf = cvaluetype(sgf);
+	if(*sgf!=']')
+		return start;
+	++sgf;
+	return sgf;
+}
+
+static const char *whitespace(const char *sgf)
+{
+	while(is_whitespace(sgf))
+		++sgf;
+	return sgf;
+}
+
+static const char *sz(const char *sgf)
+{
+	if(!cb->sz)
+		return sgf;
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *start = sgf;
+	if(strncmp("SZ",sgf,2))
+		return sgf;
+	sgf += 2;
+	sgf = whitespace(sgf);
+	if(*sgf != '[')
+		return start;
+	++sgf;
+	if(strncmp("19",sgf,2))
+		return start;
+	sgf += 2;
+	if(*sgf != ']')
+		return start;
+	++sgf;
+	cb->sz(19);
+	return sgf;
+}
+
+static const char *move(const char *sgf)
+{
+	if(!cb->b || !cb->w)
+		return sgf;
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *start = sgf;
+	char a, b, color;
+	if(*sgf!='B' && *sgf!='W')
+		return start;
+	color = *sgf;
+	++sgf;
+	sgf = whitespace(sgf);
+	if(*sgf != '[')
+		return start;
+	++sgf;
+
+	if(*sgf == ']') {
+		a = 't';
+		b = 't';
+	}
+	else if(is_point(sgf)) {
+		a = *sgf; ++sgf;
+		b = *sgf; ++sgf;
+	}
+	else
+		return start;
+
+	if(*sgf != ']')
+		return start;
+	(color=='B') ? cb->b(a,b) : cb->w(a,b);
+	++sgf;
+	return sgf;
+}
+
+static const char *add(const char *sgf)
+{
+	if(!cb->ab || !cb->aw || !cb->ae)
+		return sgf;
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *start = sgf;
+	char color;
+	if(*sgf!='A')
+		return start;
+	++sgf;
+	if(*sgf!='B' && *sgf!='W' && *sgf!='E')
+		return start;
+	color = *sgf;
+	++sgf;
+	sgf = whitespace(sgf);
+	if(*sgf != '[')
+		return start;
+	while(*sgf == '[') {
+		char a, b;
+		++sgf;
+		if(is_point(sgf)) {
+			a = *sgf; ++sgf;
+			b = *sgf; ++sgf;
+		}
+		else
+			return start;
+		if(*sgf != ']')
+			return start;
+		if(color=='B') cb->ab(a,b);
+		else if(color=='W') cb->aw(a,b);
+		else if(color=='E') cb->ae(a,b);
+		++sgf;
+		sgf = whitespace(sgf);
+	}
+	return sgf;
+}
+
+static const char *cr(const char *sgf)
+{
+	if(!cb->cr)
+		return sgf;
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	char a, b;
+	const char *start = sgf;
+	if(strncmp("CR",sgf,2))
+		return sgf;
+	sgf += 2;
+	sgf = whitespace(sgf);
+	if(*sgf != '[')
+		return start;
+	++sgf;
+	if(is_point(sgf)) {
+		a = *sgf; ++sgf;
+		b = *sgf; ++sgf;
+	}
+	else
+		return start;
+	if(*sgf != ']')
+		return start;
+	cb->cr(a,b);
+	++sgf;
+	return sgf;
+}
+
+static const char *unknown(const char *sgf)
+{
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *start = sgf, *tmp;
+
+	tmp = sgf;
+	sgf = propident(sgf);
+	if(sgf == tmp)
+		return start;
+	sgf = whitespace(sgf);
+	tmp = sgf;
+	sgf = propvalue(sgf);
+	if(sgf == tmp)
+		return start;
+	
+	cb->prop_unknown(start,sgf-start);
+
+	return sgf;
+}
+
+static const char *property(const char *sgf)
+{
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *start = sgf;
+	sgf = sz(sgf);
+	if(sgf==start) sgf = move(sgf);
+	if(sgf==start) sgf = add(sgf);
+	if(sgf==start) sgf = cr(sgf);
+	if(sgf==start) sgf = unknown(sgf);
+
+	return sgf;
+}
+
+static const char *node(const char *sgf)
+{
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *tmp = sgf;
+	if(*sgf != ';')
+		return sgf;
+	if(cb->node_new) cb->node_new();
+	++sgf;
+	while(sgf != tmp) {
+		sgf = whitespace(sgf);
+		tmp = sgf;
+		sgf = property(sgf);
+	}
+	if(cb->node_end) cb->node_end();
+	return sgf;
 }
 
 int sgf_init(const struct sgf_cb *cbs)
@@ -298,10 +301,17 @@ int sgf_init(const struct sgf_cb *cbs)
 	return 0;
 }
 
-int sgf_parse_fast(const char *sgf)
+const char *sgf_parse_fast(const char *sgf)
 {
-	assert(cb);
-	return _sgf_fast_parse(sgf, 0, strlen(sgf));
+	//printf("%s:%s\n",__FUNCTION__,sgf);
+	const char *tmp = 0;
+	sgf = whitespace(sgf);
+	while(tmp != sgf) {
+		tmp = sgf;
+		sgf = node(sgf);
+		sgf = whitespace(sgf);
+	}
+	return sgf;
 }
 
 

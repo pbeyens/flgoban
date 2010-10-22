@@ -77,7 +77,7 @@ static void read_cb(int fd, void *data)
 			exit(0);
 		return;
 	}
-	//printf("Received: %s\n",rd_cmd);
+	//printf("Received: %s\n\n",rd_cmd);
 	sgf_parse_fast(rd_cmd);
 	broadcast(broadcast_msg);
 	flgoban->redraw();
@@ -156,12 +156,13 @@ static void sgf_b(char cx, char cy)
 
 	if(!setts.expand) {
 		sprintf(msg, "B[%c%c]", cx,cy);
+		strcat(broadcast_msg, msg);
 	}
 	else if (!setts.nomark) {
 		flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
 		sprintf(msg, "CR[%c%c]", cx,cy);
+		strcat(broadcast_msg, msg);
 	}
-	strcat(broadcast_msg, msg);
 }
 
 static void sgf_w(char cx, char cy)
@@ -177,8 +178,8 @@ static void sgf_w(char cx, char cy)
 	else if(!setts.nomark) {
 		flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
 		sprintf(msg, "CR[%c%c]", cx,cy);
+		strcat(broadcast_msg, msg);
 	}
-	strcat(broadcast_msg, msg);
 }
 
 static void sgf_ab(char cx, char cy)
@@ -233,14 +234,6 @@ static void sgf_cr(char cx, char cy)
 	strcat(broadcast_msg, msg);
 }
 
-static void sgf_me(char cx, char cy)
-{
-	char msg[10];
-	flgoban->set_mark(sgf2int(cx),sgf2int(cy),empty);
-	sprintf(msg, "ME[%c%c]", cx,cy);
-	strcat(broadcast_msg, msg);
-}
-
 static void sgf_prop_unknown(const char *prop, int size)
 {
 	strncat(broadcast_msg, prop, size);
@@ -251,7 +244,7 @@ static const struct sgf_cb scb = { \
 	sgf_sz, \
 	sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, \
 	sgf_pw, sgf_pb, \
-	sgf_cr, sgf_me, \
+	sgf_cr, \
 	sgf_prop_unknown };
 
 /* EVENTS */

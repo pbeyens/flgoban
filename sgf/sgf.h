@@ -25,11 +25,10 @@ struct sgf_cb {
 	void (*pw)(const char*, int s);
 	void (*pb)(const char*, int s);
 	void (*cr)(char, char);
-	void (*me)(char, char);
 	void (*prop_unknown)(const char*, int s);
 };
 
 extern int sgf_init(const struct sgf_cb *cb);
-extern int sgf_parse_fast(const char *sgf);
+extern const char *sgf_parse_fast(const char *sgf);
 
 #endif

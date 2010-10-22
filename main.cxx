@@ -66,9 +66,11 @@ static void read_cb(int fd, void *data)
 {
 	int n;
 	char rd_cmd[10000];
-	memset(rd_cmd, '\0', sizeof(rd_cmd));
+	const char *end;
+	//memset(rd_cmd, '\0', sizeof(rd_cmd));
 	memset(broadcast_msg, '\0', sizeof(rd_cmd));
-	n = read(fd, rd_cmd, sizeof(rd_cmd));
+	printf("pending: %s\n", rd_cmd);
+	n = read(fd, rd_cmd + strlen(rd_cmd), sizeof(rd_cmd)-strlen(rd_cmd));
 	if(n <= 0) {
 		Fl::remove_fd(fd);
 		fds.remove(fd);
@@ -77,8 +79,12 @@ static void read_cb(int fd, void *data)
 			exit(0);
 		return;
 	}
-	//printf("Received: %s\n\n",rd_cmd);
-	sgf_parse_fast(rd_cmd);
+	printf("received: %s\n",rd_cmd);
+	end = sgf_parse_fast(rd_cmd);
+	if((unsigned)(end-rd_cmd) != strlen(rd_cmd))
+		memmove(rd_cmd,end,strlen(end));
+	else
+		memset(rd_cmd, '\0', sizeof(rd_cmd));
 	broadcast(broadcast_msg);
 	flgoban->redraw();
 }
@@ -149,57 +155,53 @@ static void sgf_sz(int s)
 	strcat(broadcast_msg, msg);
 }
 
-static void sgf_b(char cx, char cy)
+static void sgf_move(char col, char cx, char cy)
 {
 	char msg[20];
-	goban_play(g, sgf2int(cx), sgf2int(cy), black);
 
+	goban_play(g, sgf2int(cx), sgf2int(cy), col=='B' ? black : white);
 	if(!setts.expand) {
-		sprintf(msg, "B[%c%c]", cx,cy);
+		sprintf(msg, "%c[%c%c]", col,cx,cy);
 		strcat(broadcast_msg, msg);
 	}
-	else if (!setts.nomark) {
+
+	if(!setts.nomark) {
 		flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
-		sprintf(msg, "CR[%c%c]", cx,cy);
-		strcat(broadcast_msg, msg);
+		if(setts.expand) {
+			sprintf(msg, "CR[%c%c]", cx,cy);
+			strcat(broadcast_msg, msg);
+		}
 	}
+}
+
+static void sgf_b(char cx, char cy)
+{
+	sgf_move('B',cx,cy);
 }
 
 static void sgf_w(char cx, char cy)
 {
-	char msg[20];
+	sgf_move('W',cx,cy);
+}
 
-	goban_play(g, sgf2int(cx), sgf2int(cy), white);
-
+static void sgf_add(char col, char cx, char cy)
+{
+	char msg[10];
+	goban_set(g, sgf2int(cx), sgf2int(cy), col=='B' ? black:white);
 	if(!setts.expand) {
-		sprintf(msg, "W[%c%c]", cx,cy);
-		strcat(broadcast_msg, msg);
-	}
-	else if(!setts.nomark) {
-		flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
-		sprintf(msg, "CR[%c%c]", cx,cy);
+		sprintf(msg, "A%c[%c%c]",col,cx,cy);
 		strcat(broadcast_msg, msg);
 	}
 }
 
 static void sgf_ab(char cx, char cy)
 {
-	char msg[10];
-	goban_set(g, sgf2int(cx), sgf2int(cy), black);
-	if(!setts.expand) {
-		sprintf(msg, "AB[%c%c]", cx,cy);
-		strcat(broadcast_msg, msg);
-	}
+	sgf_add('B',cx,cy);
 }
 
 static void sgf_aw(char cx, char cy)
 {
-	char msg[10];
-	goban_set(g, sgf2int(cx), sgf2int(cy), white);
-	if(!setts.expand) {
-		sprintf(msg, "AW[%c%c]", cx,cy);
-		strcat(broadcast_msg, msg);
-	}
+	sgf_add('W',cx,cy);
 }
 
 static void sgf_ae(char cx, char cy)

@@ -81,7 +81,7 @@ static void read_cb(int fd, void *data)
 	//printf("received: %s\n",offset);
 	//printf("cmd: %s\n",rd_cmd);
 	offset = (char*)sgf_parse_fast(rd_cmd);
-	printf("%d - %d\n",(int)strlen(rd_cmd),(int)(offset-rd_cmd));
+	//printf("%d - %d\n",(int)strlen(rd_cmd),(int)(offset-rd_cmd));
 	//for(int i=0;i<100;++i) {
 		//printf("%02x",rd_cmd[i]);
 	//}

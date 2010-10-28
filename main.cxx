@@ -62,15 +62,14 @@ static void broadcast(const char *cmd)
 	printf("%s",cmd);
 }
 
+static char rd_cmd[10000];
+static char *offset;
 static void read_cb(int fd, void *data)
 {
 	int n;
-	char rd_cmd[10000];
-	const char *end;
-	//memset(rd_cmd, '\0', sizeof(rd_cmd));
 	memset(broadcast_msg, '\0', sizeof(rd_cmd));
-	printf("pending: %s\n", rd_cmd);
-	n = read(fd, rd_cmd + strlen(rd_cmd), sizeof(rd_cmd)-strlen(rd_cmd));
+	//printf("pending: %s\n", rd_cmd);
+	n = read(fd, offset+strlen(offset), 2048);
 	if(n <= 0) {
 		Fl::remove_fd(fd);
 		fds.remove(fd);
@@ -79,12 +78,18 @@ static void read_cb(int fd, void *data)
 			exit(0);
 		return;
 	}
-	printf("received: %s\n",rd_cmd);
-	end = sgf_parse_fast(rd_cmd);
-	if((unsigned)(end-rd_cmd) != strlen(rd_cmd))
-		memmove(rd_cmd,end,strlen(end));
-	else
-		memset(rd_cmd, '\0', sizeof(rd_cmd));
+	//printf("received: %s\n",offset);
+	//printf("cmd: %s\n",rd_cmd);
+	offset = (char*)sgf_parse_fast(rd_cmd);
+	printf("%d - %d\n",(int)strlen(rd_cmd),(int)(offset-rd_cmd));
+	//for(int i=0;i<100;++i) {
+		//printf("%02x",rd_cmd[i]);
+	//}
+	//printf("not parsed: %s\n",offset);
+	if(strlen(rd_cmd)==(unsigned)(offset-rd_cmd)) {
+		memset(rd_cmd,'\0',sizeof(rd_cmd));
+		offset = rd_cmd;
+	}
 	broadcast(broadcast_msg);
 	flgoban->redraw();
 }
@@ -375,6 +380,8 @@ int main(int argc, char **argv) {
 
 	g = goban_alloc(19, &gcb);
 	sgf_init(&scb);
+	memset(rd_cmd, '\0', sizeof(rd_cmd));
+	offset = rd_cmd;
 
 	signal(SIGPIPE,handler_sigpipe);
 

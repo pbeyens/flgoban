@@ -85,7 +85,7 @@ static int is_text(const char *sgf)
 
 static const char *valuetype(const char *sgf)
 {
-	while(*sgf != ']')
+	while(strlen(sgf) && *sgf != ']')
 		++sgf;
 	return sgf;
 }
@@ -265,33 +265,27 @@ static const char *unknown(const char *sgf)
 	return sgf;
 }
 
-static const char *property(const char *sgf)
+static const char *node(const char *sgf)
 {
 	//printf("%s:%s\n",__FUNCTION__,sgf);
+	if(*sgf != ';')
+		return sgf;
+	if(cb->node_end) cb->node_end();
+	if(cb->node_new) cb->node_new();
+	return ++sgf;
+}
+
+static const char *property(const char *sgf)
+{
+	//printf("%s:%s\n\n",__FUNCTION__,sgf);
 	const char *start = sgf;
-	sgf = sz(sgf);
+	sgf = node(sgf);
+	if(sgf==start) sgf = sz(sgf);
 	if(sgf==start) sgf = move(sgf);
 	if(sgf==start) sgf = add(sgf);
 	if(sgf==start) sgf = cr(sgf);
 	if(sgf==start) sgf = unknown(sgf);
 
-	return sgf;
-}
-
-static const char *node(const char *sgf)
-{
-	//printf("%s:%s\n",__FUNCTION__,sgf);
-	const char *tmp = sgf;
-	if(*sgf != ';')
-		return sgf;
-	if(cb->node_new) cb->node_new();
-	++sgf;
-	while(sgf != tmp) {
-		sgf = whitespace(sgf);
-		tmp = sgf;
-		sgf = property(sgf);
-	}
-	if(cb->node_end) cb->node_end();
 	return sgf;
 }
 
@@ -305,11 +299,10 @@ const char *sgf_parse_fast(const char *sgf)
 {
 	//printf("%s:%s\n",__FUNCTION__,sgf);
 	const char *tmp = 0;
-	sgf = whitespace(sgf);
-	while(tmp != sgf) {
-		tmp = sgf;
-		sgf = node(sgf);
+	while(sgf != tmp) {
 		sgf = whitespace(sgf);
+		tmp = sgf;
+		sgf = property(sgf);
 	}
 	return sgf;
 }

@@ -15,7 +15,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 struct sgf_cb {
 	void (*node_new)(void);
-	void (*node_end)(void);
 	void (*sz)(int);
 	void (*b)(char, char);
 	void (*w)(char, char);

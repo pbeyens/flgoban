@@ -270,7 +270,6 @@ static const char *node(const char *sgf)
 	//printf("%s:%s\n",__FUNCTION__,sgf);
 	if(*sgf != ';')
 		return sgf;
-	if(cb->node_end) cb->node_end();
 	if(cb->node_new) cb->node_new();
 	return ++sgf;
 }

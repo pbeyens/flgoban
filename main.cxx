@@ -59,11 +59,10 @@ static void broadcast(const char *cmd)
 		send(*cit, cmd, strlen(cmd),0);
 		++cit;
 	}
-	printf("%s",cmd);
+	printf("%s\n",cmd);
 }
 
 static char rd_cmd[10000];
-//static char *offset;
 static char *wr, *rd;
 static void read_cb(int fd, void *data)
 {
@@ -137,11 +136,6 @@ static void sgf_node_new(void)
 {
 	flgoban->clear_marks();
 	strcat(broadcast_msg, ";");
-}
-
-static void sgf_node_end(void)
-{
-	strcat(broadcast_msg, "\n");
 }
 
 static void sgf_sz(int s)
@@ -241,7 +235,7 @@ static void sgf_prop_unknown(const char *prop, int size)
 }
 
 static const struct sgf_cb scb = { \
-	sgf_node_new, sgf_node_end, \
+	sgf_node_new, \
 	sgf_sz, \
 	sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, \
 	sgf_pw, sgf_pb, \

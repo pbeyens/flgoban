@@ -249,6 +249,8 @@ static void ev_key(char k)
 	char e[100];
 	sprintf(e, ";KEY[%c]\n", k);
 	broadcast(e);
+	if(k == 'q')
+		exit(0);
 }
 
 static void ev_mou(int x, int y)

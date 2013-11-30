@@ -1,7 +1,7 @@
 CXX      = g++
 DEBUG    = -g
-CXXFLAGS = $(shell fltk-config --cxxflags ) -Werror -Wall -I. -Isgf -Igoban -I/Users/Pieter/argp-standalone-1.3/
-LDFLAGS  = $(shell fltk-config --ldstaticflags ) -L/Users/Pieter/argp-standalone-1.3/ -largp
+CXXFLAGS = $(shell fltk-config --cxxflags ) -Werror -Wall -I. -Isgf -Igoban -I/usr/local/include -I/usr/locale/include/FL
+LDFLAGS  = $(shell fltk-config --ldstaticflags ) -L/usr/local/lib -lfltk
 LINK     = $(CXX)
 
 TARGET = flgoban

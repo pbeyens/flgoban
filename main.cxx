@@ -33,7 +33,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 using namespace std;
 
-static Fl_Double_Window *win = NULL;
+static Fl_Window *win = NULL;
 static Fl_Goban *flgoban = NULL;
 //static Fl_Text_Buffer *textbuffer = NULL;
 //static Fl_Text_Editor *comment = NULL;

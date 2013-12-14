@@ -119,6 +119,8 @@ void Fl_Goban::draw_dot(int x, int y, int color_edge, int color_fill, int handic
 	else
 		dotsize = d/1.2;
 
+	fl_line_style(FL_SOLID, 1, 0);
+
 	if(color_fill) {
 		fl_color(color_fill);
 		fl_pie(1+c_x+offx-(dotsize/2),1+c_y+offy-(dotsize/2), dotsize, dotsize, 0, 360);

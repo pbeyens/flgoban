@@ -43,7 +43,7 @@ static char broadcast_msg[10000];
 
 struct settings
 {
-	int width, height, port, nogui, expand, nomark;
+	int width, height, port, nogui, expand, nomark, swap;
 };
 static struct settings setts;
 
@@ -130,6 +130,17 @@ static void goban_ae(struct goban *gob, int x, int y)
 }
 
 static const struct goban_cb gcb = { goban_ab, goban_aw, goban_ae };
+static const struct goban_cb gcb_swap = { goban_aw, goban_ab, goban_ae };
+
+static struct goban * new_goban(int size)
+{
+	struct goban * gob = NULL;
+	if(!setts.swap)
+		gob = goban_alloc(size, &gcb);
+	else
+		gob = goban_alloc(size, &gcb_swap);
+	return gob;
+}
 
 /* SGF */
 static void sgf_node_new(void)
@@ -142,7 +153,7 @@ static void sgf_sz(int s)
 {
 	char msg[10];
 	goban_free(g);
-	g = goban_alloc(s, &gcb);
+	g = new_goban(s);
 	flgoban->flresize(s);
 	sprintf(msg, "SZ[%d]", s);
 	strcat(broadcast_msg, msg);
@@ -273,6 +284,7 @@ static struct argp_option options[] = {
 	{"nogui",'g', 0, 0, "text-only interface (reads and broadcasts sgf)"},
 	{"expand",'e', 0, 0, "expand sgf"},
 	{"nomark",'m', 0, 0, "do not set mark after play"},
+	{"swap",'s', 0, 0, "swap color"},
 	{ 0 }
 };
 static error_t parse_opt (int key, char *arg, struct argp_state *state)
@@ -305,6 +317,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 			break;
 		case 'm':
 			setts.nomark = 1;
+			break;
+		case 's':
+			setts.swap = 1;
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;
@@ -368,7 +383,7 @@ int main(int argc, char **argv) {
 	if(!setts.nogui)
 		win->show();
 
-	g = goban_alloc(19, &gcb);
+	g = new_goban(19);
 	sgf_init(&scb);
 	memset(rd_cmd, '\0', sizeof(rd_cmd));
 	rd = wr = rd_cmd;

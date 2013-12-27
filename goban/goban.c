@@ -72,8 +72,11 @@ struct goban *goban_alloc(int size, const struct goban_cb *gcb)
 
 void goban_free(struct goban *g)
 {
-	if(g->vals)
-		free(g->vals);
+	if(g->vals) {
+		for(int i=0;i<(g->size*g->size);++i) {
+			free((int*)&g->vals[i]);
+		}
+	}
 	if(g)
 		free(g);
 }

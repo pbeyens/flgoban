@@ -170,10 +170,13 @@ void Fl_Goban::flclear()
 
 void Fl_Goban::flresize(int s)
 {
+	if(g) goban_free(g);
+	if(marks)
+		for(int i=0;i<size*size;++i)
+			free((int*)&marks[i]);
+
 	size = s;
 	g = goban_alloc(s, NULL);
-
-	if(marks) free(marks);
 	marks = (int*)calloc(size*size,sizeof(int));
 }
 

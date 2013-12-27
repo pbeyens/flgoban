@@ -40,10 +40,11 @@ static Fl_Goban *flgoban = NULL;
 static list<int> fds;
 static struct goban *g = NULL;
 static char broadcast_msg[10000];
+static int rotation;
 
 struct settings
 {
-	int width, height, port, nogui, expand, nomark, swap;
+	int width, height, port, nogui, expand, nomark, swap, rotate;
 };
 static struct settings setts;
 
@@ -99,6 +100,44 @@ static void listen_cb(int fd, void *s)
 }
 
 /* GOBAN */
+static void rotate(int size, int x, int y, int * new_x, int * new_y)
+{
+	switch(rotation) {
+		case 0:
+			*new_x = x;
+			*new_y = y;
+			break;
+		case 1:
+			*new_x = size-1-x;
+			*new_y = y;
+			break;
+		case 2:
+			*new_x = x;
+			*new_y = size-1-y;
+			break;
+		case 3:
+			*new_x = size-1-x;
+			*new_y = size-1-y;
+			break;
+		case 4:
+			*new_x = y;
+			*new_y = x;
+			break;
+		case 5:
+			*new_x = size-1-y;
+			*new_y = x;
+			break;
+		case 6:
+			*new_x = y;
+			*new_y = size-1-x;
+			break;
+		case 7:
+			*new_x = size-1-y;
+			*new_y = size-1-x;
+			break;
+	};
+}
+
 static void goban_ab(struct goban *gob, int x, int y)
 {
 	char msg[10];
@@ -139,6 +178,10 @@ static struct goban * new_goban(int size)
 		gob = goban_alloc(size, &gcb);
 	else
 		gob = goban_alloc(size, &gcb_swap);
+	if(setts.rotate)
+		rotation = rand() % 8;
+	else
+		rotation = 0;
 	return gob;
 }
 
@@ -162,17 +205,20 @@ static void sgf_sz(int s)
 static void sgf_move(char col, char cx, char cy)
 {
 	char msg[20];
+	int new_x, new_y;
 
-	goban_play(g, sgf2int(cx), sgf2int(cy), col=='B' ? black : white);
+	rotate(goban_size(g),sgf2int(cx),sgf2int(cy),&new_x,&new_y);
+
+	goban_play(g, new_x, new_y, col=='B' ? black : white);
 	if(!setts.expand) {
-		sprintf(msg, "%c[%c%c]", col,cx,cy);
+		sprintf(msg, "%c[%c%c]", col,int2sgf(new_x),int2sgf(new_y));
 		strcat(broadcast_msg, msg);
 	}
 
 	if(!setts.nomark) {
-		flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
+		flgoban->set_mark(new_x,new_y,circle);
 		if(setts.expand) {
-			sprintf(msg, "CR[%c%c]", cx,cy);
+			sprintf(msg, "CR[%c%c]", int2sgf(new_x),int2sgf(new_y));
 			strcat(broadcast_msg, msg);
 		}
 	}
@@ -191,9 +237,13 @@ static void sgf_w(char cx, char cy)
 static void sgf_add(char col, char cx, char cy)
 {
 	char msg[10];
-	goban_set(g, sgf2int(cx), sgf2int(cy), col=='B' ? black:white);
+	int new_x, new_y;
+
+	rotate(goban_size(g),sgf2int(cx),sgf2int(cy),&new_x,&new_y);
+
+	goban_set(g, new_x, new_y, col=='B' ? black:white);
 	if(!setts.expand) {
-		sprintf(msg, "A%c[%c%c]",col,cx,cy);
+		sprintf(msg, "A%c[%c%c]",col,int2sgf(new_x),int2sgf(new_y));
 		strcat(broadcast_msg, msg);
 	}
 }
@@ -211,9 +261,12 @@ static void sgf_aw(char cx, char cy)
 static void sgf_ae(char cx, char cy)
 {
 	char msg[10];
-	goban_set(g, sgf2int(cx), sgf2int(cy), empty);
+	int new_x, new_y;
+
+	rotate(goban_size(g),sgf2int(cx),sgf2int(cy),&new_x,&new_y);
+	goban_set(g, new_x, new_y, empty);
 	if(!setts.expand) {
-		sprintf(msg, "AE[%c%c]", cx,cy);
+		sprintf(msg, "AE[%c%c]",int2sgf(new_x) ,int2sgf(new_y));
 		strcat(broadcast_msg, msg);
 	}
 }
@@ -235,8 +288,12 @@ static void sgf_pb(const char *prop, int size)
 static void sgf_cr(char cx, char cy)
 {
 	char msg[10];
-	flgoban->set_mark(sgf2int(cx),sgf2int(cy),circle);
-	sprintf(msg, "CR[%c%c]", cx,cy);
+	int new_x, new_y;
+
+	rotate(goban_size(g),sgf2int(cx),sgf2int(cy),&new_x,&new_y);
+
+	flgoban->set_mark(new_x,new_y,circle);
+	sprintf(msg, "CR[%c%c]", int2sgf(cx),int2sgf(cy));
 	strcat(broadcast_msg, msg);
 }
 
@@ -285,6 +342,7 @@ static struct argp_option options[] = {
 	{"expand",'e', 0, 0, "expand sgf"},
 	{"nomark",'m', 0, 0, "do not set mark after play"},
 	{"swap",'s', 0, 0, "swap color"},
+	{"rotate",'r', 0, 0, "random rotate"},
 	{ 0 }
 };
 static error_t parse_opt (int key, char *arg, struct argp_state *state)
@@ -320,6 +378,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 			break;
 		case 's':
 			setts.swap = 1;
+			break;
+		case 'r':
+			setts.rotate = 1;
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;

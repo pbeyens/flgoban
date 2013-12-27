@@ -41,6 +41,7 @@ extern int goban_is_black(const struct goban *g, int x, int y);
 extern int goban_is_white(const struct goban *g, int x, int y);
 extern int goban_is_empty(const struct goban *g, int x, int y);
 extern int goban_libs(const struct goban *g, int x, int y);
+extern int goban_size(const struct goban *g);
 
 extern void goban_set(struct goban *g, int x, int y, int val);
 extern void goban_play(struct goban *g, int x, int y, int val);

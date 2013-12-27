@@ -149,3 +149,8 @@ char int2sgf(int c)
 	return c + 'a';
 }
 
+int goban_size(const struct goban *g)
+{
+	return g->size;
+}
+

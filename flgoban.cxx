@@ -172,8 +172,7 @@ void Fl_Goban::flresize(int s)
 {
 	if(g) goban_free(g);
 	if(marks)
-		for(int i=0;i<size*size;++i)
-			free((int*)&marks[i]);
+		free(marks);
 
 	size = s;
 	g = goban_alloc(s, NULL);

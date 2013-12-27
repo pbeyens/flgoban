@@ -169,19 +169,11 @@ static void goban_ae(struct goban *gob, int x, int y)
 }
 
 static const struct goban_cb gcb = { goban_ab, goban_aw, goban_ae };
-static const struct goban_cb gcb_swap = { goban_aw, goban_ab, goban_ae };
 
 static struct goban * new_goban(int size)
 {
 	struct goban * gob = NULL;
-	if(!setts.swap)
-		gob = goban_alloc(size, &gcb);
-	else
-		gob = goban_alloc(size, &gcb_swap);
-	if(setts.rotate)
-		rotation = rand() % 8;
-	else
-		rotation = 0;
+	gob = goban_alloc(size, &gcb);
 	return gob;
 }
 
@@ -197,6 +189,10 @@ static void sgf_sz(int s)
 	char msg[10];
 	goban_free(g);
 	g = new_goban(s);
+	if(setts.rotate)
+		rotation = rand() % 8;
+	else
+		rotation = 0;
 	flgoban->flresize(s);
 	sprintf(msg, "SZ[%d]", s);
 	strcat(broadcast_msg, msg);
@@ -206,6 +202,11 @@ static void sgf_move(char col, char cx, char cy)
 {
 	char msg[20];
 	int new_x, new_y;
+
+	if(setts.swap) {
+		if(col=='B') col='W';
+		else col='B';
+	}
 
 	rotate(goban_size(g),sgf2int(cx),sgf2int(cy),&new_x,&new_y);
 
@@ -238,6 +239,11 @@ static void sgf_add(char col, char cx, char cy)
 {
 	char msg[10];
 	int new_x, new_y;
+
+	if(setts.swap) {
+		if(col=='B') col='W';
+		else col='B';
+	}
 
 	rotate(goban_size(g),sgf2int(cx),sgf2int(cy),&new_x,&new_y);
 

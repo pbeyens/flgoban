@@ -1,12 +1,12 @@
 CXX      = g++
 DEBUG    = -g
 CXXFLAGS = $(shell fltk-config --cxxflags ) -Werror -Wall -I. -Igoban -I/usr/local/include -I/usr/locale/include/FL
-LDFLAGS  = $(shell fltk-config --ldstaticflags ) -L/usr/local/lib -lfltk -lflgsgf
+LDFLAGS  = $(shell fltk-config --ldstaticflags ) -L/usr/local/lib -lfltk -lflgsgf -lgoban
 LINK     = $(CXX)
 
 TARGET = flgoban
-OBJS = flgoban.o main.o goban/goban.o
-SRCS = flgoban.cxx main.cxx goban/goban.c
+OBJS = flgoban.o main.o
+SRCS = flgoban.cxx main.cxx
 
 .SUFFIXES: .o .cxx
 

@@ -48,57 +48,6 @@ struct settings
 };
 static struct settings setts;
 
-static void handler_sigpipe(int)
-{
-	return;
-}
-
-static void broadcast(const char *cmd)
-{
-	list<int>::const_iterator cit = fds.begin();
-	while(cit!=fds.end()) {
-		send(*cit, cmd, strlen(cmd),0);
-		++cit;
-	}
-	printf("%s\n",cmd);
-}
-
-static char rd_cmd[10000];
-static char *wr, *rd;
-static void read_cb(int fd, void *data)
-{
-	int n;
-	memset(broadcast_msg, '\0', sizeof(rd_cmd));
-	n = read(fd, wr, 2048);
-	if(n <= 0) {
-		Fl::remove_fd(fd);
-		fds.remove(fd);
-		/* if not a gui and not listening then exit */
-		if(setts.nogui && !setts.port && !fds.size())
-			exit(0);
-		return;
-	}
-	wr += n;
-	rd = (char*) sgf_parse_fast(rd);
-	if(rd == wr) {
-		memset(rd_cmd,'\0',sizeof(rd_cmd));
-		rd = wr = rd_cmd;
-	}
-	broadcast(broadcast_msg);
-	flgoban->redraw();
-}
-
-static void listen_cb(int fd, void *s)
-{
-	int a = accept(*(int*)s, NULL, 0);
-	if(0 > a)
-		perror("accept()");
-	else {
-		Fl::add_fd(a, read_cb, NULL);
-		fds.push_back(a);
-	}
-}
-
 /* GOBAN */
 static void rotate(int size, int x, int y, int * new_x, int * new_y)
 {
@@ -308,13 +257,66 @@ static void sgf_prop_unknown(const char *prop, int size)
 	strncat(broadcast_msg, prop, size);
 }
 
-static const struct sgf_cb scb = { \
-	sgf_node_new, \
-	sgf_sz, \
-	sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae, \
-	sgf_pw, sgf_pb, \
-	sgf_cr, \
-	sgf_prop_unknown };
+static const struct sgf_cb cbs = {
+	sgf_node_new,
+	sgf_sz,
+	sgf_b, sgf_w, sgf_ab, sgf_aw, sgf_ae,
+	sgf_pw, sgf_pb,
+	sgf_cr,
+	NULL,
+	sgf_prop_unknown
+};
+
+static void handler_sigpipe(int)
+{
+	return;
+}
+
+static void broadcast(const char *cmd)
+{
+	list<int>::const_iterator cit = fds.begin();
+	while(cit!=fds.end()) {
+		send(*cit, cmd, strlen(cmd),0);
+		++cit;
+	}
+	printf("%s\n",cmd);
+}
+
+static char rd_cmd[10000];
+static char *wr, *rd;
+static void read_cb(int fd, void *data)
+{
+	int n;
+	memset(broadcast_msg, '\0', sizeof(rd_cmd));
+	n = read(fd, wr, 2048);
+	if(n <= 0) {
+		Fl::remove_fd(fd);
+		fds.remove(fd);
+		/* if not a gui and not listening then exit */
+		if(setts.nogui && !setts.port && !fds.size())
+			exit(0);
+		return;
+	}
+	wr += n;
+	rd = (char*) sgf_parse_fast(&cbs,rd);
+	if(rd == wr) {
+		memset(rd_cmd,'\0',sizeof(rd_cmd));
+		rd = wr = rd_cmd;
+	}
+	broadcast(broadcast_msg);
+	flgoban->redraw();
+}
+
+static void listen_cb(int fd, void *s)
+{
+	int a = accept(*(int*)s, NULL, 0);
+	if(0 > a)
+		perror("accept()");
+	else {
+		Fl::add_fd(a, read_cb, NULL);
+		fds.push_back(a);
+	}
+}
 
 /* EVENTS */
 
@@ -451,7 +453,6 @@ int main(int argc, char **argv) {
 		win->show();
 
 	g = new_goban(19);
-	sgf_init(&scb);
 	memset(rd_cmd, '\0', sizeof(rd_cmd));
 	rd = wr = rd_cmd;
 
